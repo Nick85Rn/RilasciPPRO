@@ -1,98 +1,191 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Settings as SettingsIcon, LogOut, FilePlus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Settings as SettingsIcon,
+  LogOut,
+  FilePlus,
+  Users,
+  Tag,
+  ShieldCheck,
+} from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { cn, initialsOf } from '@/lib/utils'
+import { DEPARTMENT_LABELS } from '@/types/database'
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { profile, isAdmin, signOut } = useAuth()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.reload()
+    await signOut()
+    navigate('/login', { replace: true })
   }
-
-  const navItems = [
-    { name: 'Tutti i Task', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Nuovo Aggiornamento', path: '/new-task', icon: FilePlus },
-  ]
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
-      
-      {/* SIDEBAR DI SINISTRA */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-10 shrink-0">
-        
-        {/* LOGO AREA - Ora allargata al massimo della sidebar */}
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+        {/* Brand */}
         <div className="h-20 flex items-center px-6 border-b border-slate-100 shrink-0">
-          <img 
-            src="/logo.png" 
-            alt="Pienissimo PRO" 
-            className="w-full h-auto max-h-12 object-contain object-left"
-          />
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-pienissimo-blue text-white grid place-items-center font-black text-sm">
+              P
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-sm leading-tight">
+                Pienissimo
+              </p>
+              <p className="text-xs text-slate-500 leading-tight">Hub</p>
+            </div>
+          </div>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-8">
-          
-          <div className="px-4">
-            <p className="px-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Assistenza</p>
-            <nav className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = location.pathname === item.path
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                      isActive 
-                        ? 'bg-slate-100 text-[#1A65A4]' 
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon size={18} className={isActive ? 'text-[#1A65A4]' : 'text-slate-400'} />
-                    {item.name}
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-
-          <div className="px-4">
-            <p className="px-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Sistema</p>
-            <nav className="space-y-1">
-              <Link
-                to="/settings"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  location.pathname === '/settings' 
-                    ? 'bg-slate-100 text-[#1A65A4]' 
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-6 flex flex-col gap-6">
+          <SidebarSection title="Bacheca">
+            <SidebarLink
+              to="/dashboard"
+              icon={<LayoutDashboard size={18} />}
+              active={location.pathname === '/dashboard'}
+            >
+              Tutti i task
+            </SidebarLink>
+            {isAdmin && (
+              <SidebarLink
+                to="/new-task"
+                icon={<FilePlus size={18} />}
+                active={location.pathname === '/new-task'}
               >
-                <SettingsIcon size={18} className={location.pathname === '/settings' ? 'text-[#1A65A4]' : 'text-slate-400'} />
-                Impostazioni
-              </Link>
-            </nav>
-          </div>
+                Nuovo task
+              </SidebarLink>
+            )}
+          </SidebarSection>
 
-        </div>
+          {isAdmin && (
+            <SidebarSection title="Amministrazione">
+              <SidebarLink
+                to="/admin/categories"
+                icon={<Tag size={18} />}
+                active={location.pathname === '/admin/categories'}
+              >
+                Categorie
+              </SidebarLink>
+              <SidebarLink
+                to="/admin/users"
+                icon={<Users size={18} />}
+                active={location.pathname === '/admin/users'}
+              >
+                Utenti
+              </SidebarLink>
+            </SidebarSection>
+          )}
 
-        {/* Footer Sidebar (Logout) */}
+          <SidebarSection title="Sistema">
+            <SidebarLink
+              to="/settings"
+              icon={<SettingsIcon size={18} />}
+              active={location.pathname === '/settings'}
+            >
+              Profilo
+            </SidebarLink>
+          </SidebarSection>
+        </nav>
+
+        {/* User card */}
         <div className="p-4 border-t border-slate-100 shrink-0">
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+          <div className="flex items-center gap-3 px-2 py-2 mb-2 rounded-lg">
+            <div
+              className={cn(
+                'w-9 h-9 rounded-full grid place-items-center font-bold text-xs shrink-0',
+                isAdmin
+                  ? 'bg-pienissimo-blue text-white'
+                  : 'bg-slate-200 text-slate-700'
+              )}
+            >
+              {initialsOf(profile?.full_name ?? '')}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 truncate">
+                {profile?.full_name ?? 'Utente'}
+              </p>
+              <div className="flex items-center gap-1.5">
+                {isAdmin && (
+                  <ShieldCheck size={11} className="text-pienissimo-blue" />
+                )}
+                <p className="text-xs text-slate-500 truncate">
+                  {isAdmin
+                    ? 'Admin'
+                    : profile
+                      ? DEPARTMENT_LABELS[profile.department]
+                      : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => void handleLogout()}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
-            <LogOut size={18} />
-            Esci dall'Hub
+            <LogOut size={16} />
+            Esci
           </button>
         </div>
       </aside>
 
-      {/* AREA PRINCIPALE */}
-      <main className="flex-1 overflow-y-auto bg-[#F8FAFC]">
+      <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
-
     </div>
+  )
+}
+
+function SidebarSection({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="px-4">
+      <p className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+        {title}
+      </p>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  )
+}
+
+function SidebarLink({
+  to,
+  icon,
+  active,
+  children,
+}: {
+  to: string
+  icon: React.ReactNode
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+        active
+          ? 'bg-pienissimo-50 text-pienissimo-blue'
+          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+      )}
+    >
+      <span
+        className={cn(
+          'shrink-0',
+          active ? 'text-pienissimo-blue' : 'text-slate-400'
+        )}
+      >
+        {icon}
+      </span>
+      {children}
+    </Link>
   )
 }

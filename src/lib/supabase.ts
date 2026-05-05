@@ -1,8 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Questi dati li prenderemo dalla dashboard di Supabase.
-// Per ora mettiamo dei placeholder affinché l'app non si rompa.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vgzugqklrmkldacsjpch.supabase.co'
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_b4mS-9kfwLs90Usilg-Ucg_TzCn8xnT'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    '[supabase] Variabili VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY mancanti. ' +
+      'Crea un .env partendo da .env.example.'
+  )
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+  },
+})

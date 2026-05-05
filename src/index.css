@@ -2,26 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #f8fafc;
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  }
+
+  /* Smooth focus ring per accessibilità */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-pienissimo-blue ring-offset-2 ring-offset-white;
+  }
 }
 
-/* Customizzazione per React Quill per renderlo moderno */
-.ql-toolbar.ql-snow {
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 0.75rem 0.75rem 0 0 !important;
-  background-color: #f8fafc;
-  padding: 12px !important;
+@layer components {
+  .form-input {
+    @apply w-full pl-4 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg
+           text-sm text-slate-900 placeholder:text-slate-400
+           outline-none focus:ring-2 focus:ring-pienissimo-blue/20 focus:border-pienissimo-blue
+           transition-all;
+  }
+
+  .form-select {
+    @apply w-full pl-3 pr-9 py-2.5 bg-white border border-slate-200 rounded-lg
+           text-sm text-slate-900 cursor-pointer
+           outline-none focus:ring-2 focus:ring-pienissimo-blue/20 focus:border-pienissimo-blue
+           transition-all
+           appearance-none bg-no-repeat bg-right;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-size: 1.25em 1.25em;
+  }
 }
-.ql-container.ql-snow {
-  border: 1px solid #e2e8f0 !important;
-  border-top: none !important;
-  border-radius: 0 0 0.75rem 0.75rem !important;
-  font-family: inherit !important;
-  font-size: 1rem !important;
-}
-.ql-editor {
-  min-height: 400px;
-  padding: 1.5rem !important;
-  color: #334155;
+
+/* Prose: stili per il contenuto Tiptap renderizzato */
+@layer utilities {
+  .prose pre {
+    @apply rounded-xl;
+  }
+  .prose code:not(pre code) {
+    @apply text-sm;
+  }
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply text-slate-400 float-left h-0 pointer-events-none;
+  }
 }

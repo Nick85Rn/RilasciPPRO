@@ -1,87 +1,100 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { supabase } from './lib/supabase'
-
-// --- IMPORTAZIONE COMPONENTI E PAGINE ---
-import Layout from './components/Layout'
-import Dashboard from './pages/Dashboard'
-import NewTask from './pages/NewTask'
-import EditTask from './pages/EditTask'
-import TaskDetail from './pages/TaskDetail'
-import Settings from './pages/Settings'
-import Login from './pages/Login'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
+import { PageLoader } from '@/components/Spinner'
+import Layout from '@/components/Layout'
+import Login from '@/pages/Login'
+import Dashboard from '@/pages/Dashboard'
+import NewTask from '@/pages/NewTask'
+import EditTask from '@/pages/EditTask'
+import TaskDetail from '@/pages/TaskDetail'
+import AdminCategories from '@/pages/AdminCategories'
+import AdminUsers from '@/pages/AdminUsers'
+import Settings from '@/pages/Settings'
 
 export default function App() {
-  const [session, setSession] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { session, profile, loading, isAdmin } = useAuth()
 
-  useEffect(() => {
-    // 1. Controlla la sessione utente al primo caricamento dell'app
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
+  if (loading) return <PageLoader />
 
-    // 2. Ascolta in tempo reale i cambiamenti (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  // Mostra un indicatore di caricamento mentre verifica se l'utente è loggato
-  if (loading) {
+  // Non loggato: solo /login
+  if (!session) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1A65A4]"></div>
-      </div>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     )
   }
 
+  // Loggato ma profilo non ancora caricato (es. trigger lento)
+  if (!profile) return <PageLoader />
+
   return (
-    <BrowserRouter>
-      <Routes>
-        
-        {/* =========================================
-            ROTTE PUBBLICHE (Accessibili a tutti)
-            Se sei GIÀ loggato e provi ad andare su /login, 
-            il sistema ti rimbalza automaticamente sulla Dashboard.
-        ========================================= */}
-        <Route 
-          path="/login" 
-          element={!session ? <Login /> : <Navigate to="/dashboard" replace />} 
+    <Routes>
+      {/* Login già loggato → redirect a dashboard */}
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+
+      {/* Tutto il resto dentro il layout */}
+      <Route element={<Layout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/task/:id" element={<TaskDetail />} />
+        <Route path="/settings" element={<Settings />} />
+
+        {/* Rotte admin-only */}
+        <Route
+          path="/new-task"
+          element={
+            <AdminGuard isAdmin={isAdmin}>
+              <NewTask />
+            </AdminGuard>
+          }
+        />
+        <Route
+          path="/edit-task/:id"
+          element={
+            <AdminGuard isAdmin={isAdmin}>
+              <EditTask />
+            </AdminGuard>
+          }
+        />
+        <Route
+          path="/admin/categories"
+          element={
+            <AdminGuard isAdmin={isAdmin}>
+              <AdminCategories />
+            </AdminGuard>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminGuard isAdmin={isAdmin}>
+              <AdminUsers />
+            </AdminGuard>
+          }
         />
 
-        {/* =========================================
-            ROTTE PROTETTE (Richiedono il Login)
-            Tutte queste pagine usano il <Layout /> (con la sidebar).
-            Se NON sei loggato, vieni reindirizzato subito su /login.
-        ========================================= */}
-        <Route element={session ? <Layout /> : <Navigate to="/login" replace />}>
-          
-          {/* La rotta base "/" reindirizza alla dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* Pagine principali del gestionale */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/new-task" element={<NewTask />} />
-          <Route path="/settings" element={<Settings />} />
-          
-          {/* Pagine dinamiche (con l'ID del task nell'URL) */}
-          <Route path="/task/:id" element={<TaskDetail />} />
-          <Route path="/edit-task/:id" element={<EditTask />} />
-          
-        </Route>
-
-        {/* =========================================
-            FALLBACK (Rotta di emergenza)
-            Se un utente digita un URL che non esiste (es: /pagina-a-caso),
-            viene riportato alla rotta principale senza far crashare l'app.
-        ========================================= */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-
-      </Routes>
-    </BrowserRouter>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+    </Routes>
   )
+}
+
+/**
+ * Guard di rotta: se l'utente non è admin, lo manda al dashboard.
+ * NOTA: il vero gating è sulle RLS Supabase. Questo è solo UX.
+ */
+function AdminGuard({
+  isAdmin,
+  children,
+}: {
+  isAdmin: boolean
+  children: React.ReactNode
+}) {
+  const location = useLocation()
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace state={{ from: location }} />
+  }
+  return <>{children}</>
 }
