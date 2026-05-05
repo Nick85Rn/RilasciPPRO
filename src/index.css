@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #f8fafc;
+}
+
+/* Customizzazione per React Quill per renderlo moderno */
+.ql-toolbar.ql-snow {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem 0.75rem 0 0 !important;
+  background-color: #f8fafc;
+  padding: 12px !important;
+}
+.ql-container.ql-snow {
+  border: 1px solid #e2e8f0 !important;
+  border-top: none !important;
+  border-radius: 0 0 0.75rem 0.75rem !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+}
+.ql-editor {
+  min-height: 400px;
+  padding: 1.5rem !important;
+  color: #334155;
+}
